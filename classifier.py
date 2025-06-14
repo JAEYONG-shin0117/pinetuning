@@ -277,7 +277,14 @@ def train(args):
 
   config = SimpleNamespace(**config)
 
-  model = GPT2SentimentClassifier(config)
+  model = GPT2SentimentClassifier(config)d
+
+  total = sum(p.numel() for p in model.parameters())
+  trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+  print(f"\n[LoRA 파라미터 확인]")
+  print(f"전체 파라미터 수: {total:,}")
+  print(f"학습 파라미터 수: {trainable:,}")
+  print(f"학습 비율: {trainable / total * 100:.4f}%\n")
   model = model.to(device)
 
   lr = args.lr
