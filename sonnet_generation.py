@@ -60,7 +60,7 @@ class SonnetGPT(nn.Module):
 
     # LoRA 파라미터만 학습 가능하게 설정
     for name, param in self.gpt.named_parameters():
-      if 'A' in name or 'B' in name:
+      if 'A' in name or 'B' in name or 'adapter' in name:
         param.requires_grad = True
 
 
