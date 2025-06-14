@@ -277,7 +277,7 @@ def train(args):
 
   config = SimpleNamespace(**config)
 
-  model = GPT2SentimentClassifier(config)d
+  model = GPT2SentimentClassifier(config)
 
   total = sum(p.numel() for p in model.parameters())
   trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
