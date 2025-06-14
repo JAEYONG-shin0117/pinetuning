@@ -54,8 +54,15 @@ class SonnetGPT(nn.Module):
     self.tokenizer.pad_token = self.tokenizer.eos_token
 
     # 기본적으로, 전체 모델을 fine-tuning한다. TODO: 이것은 좋은 생각이 아닌 것 같다.
+    # 전체 파라미터 동결
     for param in self.gpt.parameters():
-      param.requires_grad = True
+      param.requires_grad = False
+
+    # LoRA 파라미터만 학습 가능하게 설정
+    for name, param in self.gpt.named_parameters():
+      if 'A' in name or 'B' in name:
+        param.requires_grad = True
+
 
   def forward(self, input_ids, attention_mask):
     """
