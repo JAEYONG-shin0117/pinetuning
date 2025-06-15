@@ -219,7 +219,9 @@ def generate_submission_sonnets(args):
     for sonnet in generated_sonnets:
       f.write(f"\n{sonnet[0]}\n")
       f.write(sonnet[1])
-
+# 생성된 소넷 평가
+  chrf_score = test_sonnet(args.sonnet_out, args.held_out_sonnet_path)
+  print(f"\n생성된 소넷의 CHRF 점수: {chrf_score:.3f}")
 
 def get_args():
   parser = argparse.ArgumentParser()
