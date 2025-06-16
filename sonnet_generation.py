@@ -43,32 +43,6 @@ def seed_everything(seed=11711):
   torch.backends.cudnn.benchmark = False
   torch.backends.cudnn.deterministic = True
 
-  def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")):
-    """ Logits에서 top-k 또는 top-p 필터링을 수행하여 낮은 확률 토큰 제거 """
-    import torch
-
-    # top_k 필터링
-    if top_k > 0:
-      top_k = min(top_k, logits.size(-1))  # 상한 조정
-      values_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
-      logits = logits.masked_fill(values_to_remove, filter_value)
-
-    # top_p (nucleus sampling) 필터링
-    if top_p > 0.0:
-      sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-      cumulative_probs = torch.softmax(sorted_logits, dim=-1).cumsum(dim=-1)
-
-      # 누적 확률이 top_p를 넘는 인덱스는 제거
-      sorted_indices_to_remove = cumulative_probs > top_p
-      sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-      sorted_indices_to_remove[..., 0] = 0  # 첫 토큰은 항상 포함
-
-      # 원래 인덱스로 다시 변환
-      indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
-      logits = logits.masked_fill(indices_to_remove, filter_value)
-
-    return logits
-
 
 class SonnetGPT(nn.Module):
   """Sonnet 생성을 위해 설계된 여러분의 GPT-2 모델."""
@@ -123,12 +97,21 @@ class SonnetGPT(nn.Module):
       logits_sequence = self.forward(token_ids, attention_mask)
       logits_last_token = logits_sequence[:, -1, :] / temperature  # Apply temperature scaling
 
-      # Use HuggingFace filtering
-      filtered_logits = top_k_top_p_filtering(logits_last_token, top_k=0, top_p=top_p)
-      probs = F.softmax(filtered_logits, dim=-1)
+      # Convert logits to probabilities
+      probs = torch.nn.functional.softmax(logits_last_token, dim=-1)
 
-      # Sample a token
-      sampled_token = torch.multinomial(probs, num_samples=1)
+      # Top-p (nucleus) sampling
+      sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+      cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+      top_p_mask = cumulative_probs <= top_p
+      top_p_mask[..., 1:] = top_p_mask[..., :-1].clone()  # Shift mask right for proper thresholding
+      top_p_mask[..., 0] = True  # Always include the highest probability token
+      filtered_probs = sorted_probs * top_p_mask  # Zero out unlikely tokens
+      filtered_probs /= filtered_probs.sum(dim=-1, keepdim=True)  # Normalize probabilities
+
+      # Sample from filtered distribution
+      sampled_index = torch.multinomial(filtered_probs, 1)
+      sampled_token = sorted_indices.gather(dim=-1, index=sampled_index)
 
       # Stop if end-of-sequence token is reached
       if sampled_token.item() == self.tokenizer.eos_token_id:
