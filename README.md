@@ -38,29 +38,21 @@
 !git clone https://github.com/JAEYONG-shin0117/osss.git
 ```
 #### 디렉토리 이동
----
+
 cd osss
----
 
 #### 필수 패키치 설치
----
+
 !pip -r requirements.txt
----
+
 #### 감정분류, 패러파이즈 탐지, 소넷 생성 실행
----
+
 !python classifer.py --use_gpu
----
 
----
 !python paraphrase_dection.py
----
 
----
 !python sonnet_generation.py
----
 
-
-#### 환경 및 패키지 설치
 
 * conda env create -f env.yml
 * conda activate nlp_final  
